@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/COOLizh/TwitterWebApp/internal/app/apiserver"
 	"github.com/BurntSushi/toml"
+	"github.com/COOLizh/TwitterWebApp/internal/app/apiserver"
 )
 
 var (
@@ -22,7 +22,7 @@ func main() {
 	config := apiserver.NewConfig()
 	_, err := toml.DecodeFile(configPath, config)
 	if err != nil {
-		log.Fatal(err)	
+		log.Fatal(err)
 	}
 	s := apiserver.New(config)
 
