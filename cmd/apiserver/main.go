@@ -8,9 +8,7 @@ import (
 	"github.com/COOLizh/TwitterWebApp/internal/app/apiserver"
 )
 
-var (
-	configPath string
-)
+var configPath string
 
 func init() {
 	flag.StringVar(&configPath, "config-path", "configs/apiserver.toml", "config file path")
