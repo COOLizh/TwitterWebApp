@@ -57,6 +57,23 @@ func (r *UsersRepositoryMongo) Save(user model.User) (model.User, error) {
 	return user, nil
 }
 
+// CheckByEmailAndPassword : checks if the given user exists with such email and passwrod
+func (r *UsersRepositoryMongo) CheckByEmailAndPassword(user model.User) error {
+	if strings.Contains(user.Email, " ") || strings.Contains(user.PasswordHash, " ") {
+		return fmt.Errorf("input must not contain a space")
+	}
+	if user.Email == "" || user.PasswordHash == "" {
+		return fmt.Errorf("empty input")
+	}
+	collection := r.db.Collection("Users")
+	var foundResult bson.M
+	collection.FindOne(context.TODO(), bson.D{{Key: "email", Value: user.Email}}).Decode(&foundResult)
+	if foundResult["email"] == user.Email && checkPasswordHash(user.PasswordHash, foundResult["passwordhash"].(string)) {
+		return nil
+	}
+	return fmt.Errorf("no surch registered user. password or email entered incorrectly")
+}
+
 //hashPassword get hash of password
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)

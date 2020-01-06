@@ -6,6 +6,7 @@ type Config struct {
 	LogLevel           string `toml:"log_level"`
 	DbConnectionString string `toml:"db_connection_string"`
 	DbName             string `toml:"db_name"`
+	JwtSecret          string `toml:"jwt_secret"`
 }
 
 // NewConfig ...
@@ -15,5 +16,6 @@ func NewConfig() *Config {
 		LogLevel:           "debug",
 		DbConnectionString: "mongodb://localhost:27017",
 		DbName:             "twitter_web_app",
+		JwtSecret:          "epam",
 	}
 }

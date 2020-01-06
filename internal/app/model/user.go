@@ -13,6 +13,11 @@ type User struct {
 	TweetsFeed   []uint  `json:"feed"`
 }
 
+// JwtToken ...
+type JwtToken struct {
+	Token string `json:"token"`
+}
+
 func (u User) String() string {
 	return fmt.Sprintf("User:\n\tID - %d\n\tUserName - %q\n\tEmail - %q\n\tPasswordHash - %q\n", u.ID, u.UserName, u.Email, u.PasswordHash)
 }
