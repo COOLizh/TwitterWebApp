@@ -61,6 +61,7 @@ func (s *APIserver) configureRouter() {
 	s.router.HandleFunc("/register", s.handleRegistration()).Methods("POST")
 	s.router.HandleFunc("/login", s.handleLogin()).Methods("POST")
 	s.router.HandleFunc("/subscribe", s.handleSubscribe()).Methods("POST")
+	s.router.HandleFunc("/tweets", s.handlePostTweet()).Methods("POST")
 }
 
 /*
@@ -76,10 +77,14 @@ func (s *APIserver) handleRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		var user model.User
-		_ = json.NewDecoder(r.Body).Decode(&user)
-		user, err := s.rep.Save(user)
+		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			s.logger.Info(err)
+			s.logger.Error(err)
+			return
+		}
+		user, err = s.rep.Save(user)
+		if err != nil {
+			s.logger.Error(err)
 			return
 		}
 		s.logger.Info("added user " + user.String())
@@ -95,10 +100,14 @@ func (s *APIserver) handleLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		var usr model.User
-		_ = json.NewDecoder(r.Body).Decode(&usr)
+		err := json.NewDecoder(r.Body).Decode(&usr)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
 		user, err := s.rep.FindByEmailAndPassword(usr)
 		if err != nil {
-			s.logger.Info(err)
+			s.logger.Error(err)
 			return
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -107,7 +116,7 @@ func (s *APIserver) handleLogin() http.HandlerFunc {
 		})
 		tokenString, err := token.SignedString([]byte(s.config.JwtSecret))
 		if err != nil {
-			s.logger.Info(err)
+			s.logger.Error(err)
 			return
 		}
 		s.logger.Info("jwt for " + user.Email + " was succesfully created")
@@ -128,7 +137,10 @@ func (s *APIserver) handleLogin() http.HandlerFunc {
 	isLoggedIn : checks if the user is authorized using a cookie jwt
 */
 func (s *APIserver) isLoggedIn(w http.ResponseWriter, r *http.Request) (model.User, error) {
-	c, _ := r.Cookie("token")
+	c, err := r.Cookie("token")
+	if err != nil {
+		return model.User{}, err
+	}
 	token, _ := jwt.Parse(c.Value, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("There was an error")
@@ -148,10 +160,35 @@ func (s *APIserver) handleSubscribe() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		user, err := s.isLoggedIn(w, r)
 		if err != nil {
-			s.logger.Info(err)
+			s.logger.Error(err)
 		} else {
 			s.logger.Info("user " + user.Email + " has been logged in. verification was performed using jwt.")
 			json.NewEncoder(w).Encode(user)
 		}
+	}
+}
+
+// handlePostTweet find user in db and update his slice of tweets
+func (s *APIserver) handlePostTweet() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		user, err := s.isLoggedIn(w, r)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
+		var tweet model.Tweet
+		err = json.NewDecoder(r.Body).Decode(&tweet)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
+		tweet, err = s.rep.UpdateUserTweets(user, tweet)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
+		s.logger.Info("tweet for user " + user.Email + " posted")
+		json.NewEncoder(w).Encode(tweet)
 	}
 }

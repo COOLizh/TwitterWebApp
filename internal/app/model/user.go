@@ -9,7 +9,7 @@ type User struct {
 	Email        string  `json:"email"`
 	PasswordHash string  `json:"password"`
 	Following    []uint  `json:"subscriptions"`
-	UserTweets   *Tweets `json:"tweets"`
+	UserTweets   []Tweet `json:"tweets"`
 	TweetsFeed   []uint  `json:"feed"`
 }
 

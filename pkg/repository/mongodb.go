@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	//"time"
+	"time"
 
 	"github.com/COOLizh/TwitterWebApp/internal/app/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -89,4 +89,21 @@ func hashPassword(password string) (string, error) {
 func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+// UpdateUserTweets find user and add his tweet
+func (r *UsersRepositoryMongo) UpdateUserTweets(user model.User, tweet model.Tweet) (model.Tweet, error) {
+	collection := r.db.Collection("Users")
+	var foundResult model.User
+	collection.FindOne(context.TODO(), bson.D{{Key: "id", Value: user.ID}}).Decode(&foundResult)
+	id := len(foundResult.UserTweets) + 1
+	tweet.ID = uint(id)
+	tweet.AuthorID = foundResult.ID
+	tweet.Date = time.Now()
+	foundResult.UserTweets = append(foundResult.UserTweets, tweet)
+	_, err := collection.UpdateOne(context.Background(), bson.D{{Key: "id", Value: foundResult.ID}}, bson.M{"$set": foundResult})
+	if err != nil {
+		return model.Tweet{}, err
+	}
+	return tweet, nil
 }
