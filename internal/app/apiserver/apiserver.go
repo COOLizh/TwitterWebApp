@@ -155,16 +155,27 @@ func (s *APIserver) isLoggedIn(w http.ResponseWriter, r *http.Request) (model.Us
 	return model.User{}, fmt.Errorf("Invalid authorization token")
 }
 
+// handleSubscribe add userToSubscribe to subscription slice of user
 func (s *APIserver) handleSubscribe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		user, err := s.isLoggedIn(w, r)
 		if err != nil {
 			s.logger.Error(err)
-		} else {
-			s.logger.Info("user " + user.Email + " has been logged in. verification was performed using jwt.")
-			json.NewEncoder(w).Encode(user)
+			return
 		}
+		var userToSubscribe model.User
+		err = json.NewDecoder(r.Body).Decode(&userToSubscribe)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
+		err = s.rep.AddToFollowing(user, userToSubscribe)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
+		s.logger.Info("user " + userToSubscribe.UserName + " was succesfully addded to following")
 	}
 }
 

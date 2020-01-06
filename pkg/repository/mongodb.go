@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -101,9 +102,52 @@ func (r *UsersRepositoryMongo) UpdateUserTweets(user model.User, tweet model.Twe
 	tweet.AuthorID = foundResult.ID
 	tweet.Date = time.Now()
 	foundResult.UserTweets = append(foundResult.UserTweets, tweet)
+	foundResult.TweetsFeed = append(foundResult.TweetsFeed, tweet)
+
+	//При добавлении добавть твит в ленту новостей подписчиков
+	for _, follower := range foundResult.Followers {
+		var tmpUser model.User
+		collection.FindOne(context.TODO(), bson.D{{Key: "username", Value: follower}}).Decode(&tmpUser)
+		tmpUser.TweetsFeed = append(tmpUser.TweetsFeed, tweet)
+		_, err := collection.UpdateOne(context.Background(), bson.D{{Key: "username", Value: follower}}, bson.M{"$set": tmpUser})
+		if err != nil {
+			return model.Tweet{}, err
+		}
+	}
+
+	sort.Slice(foundResult.TweetsFeed, func(i, j int) bool { return foundResult.TweetsFeed[i].Date.After(foundResult.TweetsFeed[j].Date) })
 	_, err := collection.UpdateOne(context.Background(), bson.D{{Key: "id", Value: foundResult.ID}}, bson.M{"$set": foundResult})
 	if err != nil {
 		return model.Tweet{}, err
 	}
 	return tweet, nil
+}
+
+// AddToFollowing : add userToSubscribe username to subscriptions slice of user and add userToSubscribe tweets to TweetsFeed of user
+func (r *UsersRepositoryMongo) AddToFollowing(user, userToSubscribe model.User) error {
+	collection := r.db.Collection("Users")
+	var _user, _userToSubscribe model.User
+	collection.FindOne(context.TODO(), bson.D{{Key: "id", Value: user.ID}}).Decode(&_user)
+	collection.FindOne(context.TODO(), bson.D{{Key: "username", Value: userToSubscribe.UserName}}).Decode(&_userToSubscribe)
+	if _userToSubscribe.UserName != userToSubscribe.UserName {
+		return fmt.Errorf("there is no user with such username")
+	}
+	if _userToSubscribe.UserName == _user.UserName {
+		return fmt.Errorf("can't add to followers yourself")
+	}
+	_user.Following = append(_user.Following, _userToSubscribe.UserName)
+	_userToSubscribe.Followers = append(_userToSubscribe.Followers, _user.UserName)
+	for _, userToSubscribeTweet := range _userToSubscribe.UserTweets {
+		_user.TweetsFeed = append(_user.TweetsFeed, userToSubscribeTweet)
+	}
+	sort.Slice(_user.TweetsFeed, func(i, j int) bool { return _user.TweetsFeed[i].Date.After(_user.TweetsFeed[j].Date) })
+	_, err := collection.UpdateOne(context.Background(), bson.D{{Key: "id", Value: _user.ID}}, bson.M{"$set": _user})
+	if err != nil {
+		return err
+	}
+	_, err = collection.UpdateOne(context.Background(), bson.D{{Key: "id", Value: _userToSubscribe.ID}}, bson.M{"$set": _userToSubscribe})
+	if err != nil {
+		return err
+	}
+	return nil
 }
