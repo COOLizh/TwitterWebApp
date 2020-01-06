@@ -94,22 +94,23 @@ func (s *APIserver) handleRegistration() http.HandlerFunc {
 func (s *APIserver) handleLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		var user model.User
-		_ = json.NewDecoder(r.Body).Decode(&user)
-		if err := s.rep.CheckByEmailAndPassword(user); err != nil {
+		var usr model.User
+		_ = json.NewDecoder(r.Body).Decode(&usr)
+		user, err := s.rep.FindByEmailAndPassword(usr)
+		if err != nil {
 			s.logger.Info(err)
 			return
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"email":    user.Email,
-			"password": user.PasswordHash,
+			"email": user.Email,
+			"id":    user.ID,
 		})
 		tokenString, err := token.SignedString([]byte(s.config.JwtSecret))
 		if err != nil {
 			s.logger.Info(err)
 			return
 		}
-		s.logger.Info("jwt for " + user.UserName + " was succesfully created")
+		s.logger.Info("jwt for " + user.Email + " was succesfully created")
 		expire := time.Now().AddDate(0, 0, 1)
 		cookie := http.Cookie{
 			Name:    "token",
@@ -149,7 +150,7 @@ func (s *APIserver) handleSubscribe() http.HandlerFunc {
 		if err != nil {
 			s.logger.Info(err)
 		} else {
-			s.logger.Info("user " + user.UserName + " has been logged in. verification was performed using jwt.")
+			s.logger.Info("user " + user.Email + " has been logged in. verification was performed using jwt.")
 			json.NewEncoder(w).Encode(user)
 		}
 	}

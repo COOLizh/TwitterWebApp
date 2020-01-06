@@ -57,21 +57,26 @@ func (r *UsersRepositoryMongo) Save(user model.User) (model.User, error) {
 	return user, nil
 }
 
-// CheckByEmailAndPassword : checks if the given user exists with such email and passwrod
-func (r *UsersRepositoryMongo) CheckByEmailAndPassword(user model.User) error {
+// FindByEmailAndPassword : checks if the given user exists with such email and passwrod and returns this user
+func (r *UsersRepositoryMongo) FindByEmailAndPassword(user model.User) (model.User, error) {
 	if strings.Contains(user.Email, " ") || strings.Contains(user.PasswordHash, " ") {
-		return fmt.Errorf("input must not contain a space")
+		return model.User{}, fmt.Errorf("input must not contain a space")
 	}
 	if user.Email == "" || user.PasswordHash == "" {
-		return fmt.Errorf("empty input")
+		return model.User{}, fmt.Errorf("empty input")
 	}
 	collection := r.db.Collection("Users")
 	var foundResult bson.M
 	collection.FindOne(context.TODO(), bson.D{{Key: "email", Value: user.Email}}).Decode(&foundResult)
 	if foundResult["email"] == user.Email && checkPasswordHash(user.PasswordHash, foundResult["passwordhash"].(string)) {
-		return nil
+		return model.User{
+			ID:           uint(foundResult["id"].(int64)),
+			UserName:     foundResult["username"].(string),
+			Email:        foundResult["email"].(string),
+			PasswordHash: foundResult["passwordhash"].(string),
+		}, nil
 	}
-	return fmt.Errorf("no surch registered user. password or email entered incorrectly")
+	return model.User{}, fmt.Errorf("no surch registered user. password or email entered incorrectly")
 }
 
 //hashPassword get hash of password
