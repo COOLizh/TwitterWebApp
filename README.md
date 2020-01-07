@@ -12,4 +12,4 @@
 
 - [x] POST /tweets - create a tweet, account id should be found from JWT or fetched from database using session id
 
-- [ ] GET /tweets - return all tweets from your subscriptions
+- [x] GET /tweets - return all tweets from your subscriptions

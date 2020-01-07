@@ -62,6 +62,7 @@ func (s *APIserver) configureRouter() {
 	s.router.HandleFunc("/login", s.handleLogin()).Methods("POST")
 	s.router.HandleFunc("/subscribe", s.handleSubscribe()).Methods("POST")
 	s.router.HandleFunc("/tweets", s.handlePostTweet()).Methods("POST")
+	s.router.HandleFunc("/tweets", s.handleGetTweets()).Methods("GET")
 }
 
 /*
@@ -201,5 +202,19 @@ func (s *APIserver) handlePostTweet() http.HandlerFunc {
 		}
 		s.logger.Info("tweet for user " + user.Email + " posted")
 		json.NewEncoder(w).Encode(tweet)
+	}
+}
+
+// handleGetTweets return users tweetsFeed
+func (s *APIserver) handleGetTweets() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		user, err := s.isLoggedIn(w, r)
+		if err != nil {
+			s.logger.Error(err)
+			return
+		}
+		tweetsFeed, err := s.rep.GetTweetsFeed(user)
+		json.NewEncoder(w).Encode(tweetsFeed)
 	}
 }

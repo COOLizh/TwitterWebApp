@@ -151,3 +151,16 @@ func (r *UsersRepositoryMongo) AddToFollowing(user, userToSubscribe model.User) 
 	}
 	return nil
 }
+
+// GetTweetsFeed return all user tweets sorted by date
+func (r *UsersRepositoryMongo) GetTweetsFeed(user model.User) ([]model.Tweet, error) {
+	collection := r.db.Collection("Users")
+	var _user model.User
+	collection.FindOne(context.TODO(), bson.D{{Key: "id", Value: user.ID}}).Decode(&_user)
+	sort.Slice(_user.TweetsFeed, func(i, j int) bool { return _user.TweetsFeed[i].Date.After(_user.TweetsFeed[j].Date) })
+	_, err := collection.UpdateOne(context.Background(), bson.D{{Key: "id", Value: _user.ID}}, bson.M{"$set": _user})
+	if err != nil {
+		return []model.Tweet{}, err
+	}
+	return _user.TweetsFeed, nil
+}
