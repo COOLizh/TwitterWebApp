@@ -14,7 +14,7 @@ type User struct {
 	TweetsFeed   []Tweet  `json:"feed"`
 }
 
-// JwtToken ...
+// JwtToken represents jwt
 type JwtToken struct {
 	Token string `json:"token"`
 }

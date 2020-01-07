@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UsersRepositoryMongo gets a pointer to the database
+// UsersRepositoryMongo ...
 type UsersRepositoryMongo struct {
 	db *mongo.Database
 }
@@ -101,10 +101,12 @@ func (r *UsersRepositoryMongo) UpdateUserTweets(user model.User, tweet model.Twe
 	tweet.ID = uint(id)
 	tweet.AuthorID = foundResult.ID
 	tweet.Date = time.Now()
+
+	// in user's feed he also see his own tweets
 	foundResult.UserTweets = append(foundResult.UserTweets, tweet)
 	foundResult.TweetsFeed = append(foundResult.TweetsFeed, tweet)
 
-	//При добавлении добавть твит в ленту новостей подписчиков
+	// adding this tweet in tweetsFeed of subscribers
 	for _, follower := range foundResult.Followers {
 		var tmpUser model.User
 		collection.FindOne(context.TODO(), bson.D{{Key: "username", Value: follower}}).Decode(&tmpUser)

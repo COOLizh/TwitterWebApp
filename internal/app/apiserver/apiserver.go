@@ -65,15 +65,7 @@ func (s *APIserver) configureRouter() {
 	s.router.HandleFunc("/tweets", s.handleGetTweets()).Methods("GET")
 }
 
-/*
-	handleRegistration provides registration
-	Request example :
-	{
-		"username":"dddd",
-		"email":"aaa",
-		"password":"bbb"
-	}
-*/
+//handleRegistration provides registration
 func (s *APIserver) handleRegistration() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -134,9 +126,7 @@ func (s *APIserver) handleLogin() http.HandlerFunc {
 	}
 }
 
-/*
-	isLoggedIn : checks if the user is authorized using a cookie jwt
-*/
+//isLoggedIn : checks if the user is authorized using a cookie jwt
 func (s *APIserver) isLoggedIn(w http.ResponseWriter, r *http.Request) (model.User, error) {
 	c, err := r.Cookie("token")
 	if err != nil {
